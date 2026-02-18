@@ -12,3 +12,4 @@ yarn-error.log*
 # Archivos del sistema operativo (Windows/Mac)
 .DS_Store
 Thumbs.db
+/src/generated/prisma

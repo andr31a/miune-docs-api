@@ -1,89 +1,79 @@
-const crypto = require("node:crypto"); // Módulo nativo para generar UUIDs
+const prisma = require("../lib/prisma");
 
-// 1. Seed Data (Datos de prueba iniciales)
-let documentos = [
-  {
-    id: crypto.randomUUID(),
-    titulo: "Manual de Usuario MiUNE 2.0",
-    tipo: "application/pdf",
-    peso: "2.5MB",
-    estado: "publicado",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+const includeRelations = {
+  usuario: {
+    select: {
+      id: true,
+      nombre: true,
+      email: true,
+      rol: true,
+    },
   },
-  {
-    id: crypto.randomUUID(),
-    titulo: "Reporte de Gestión 2025",
-    tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    peso: "1.2MB",
-    estado: "borrador",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+  categoria: {
+    select: {
+      id: true,
+      nombre: true,
+      descripcion: true,
+    },
   },
-  {
-    id: crypto.randomUUID(),
-    titulo: "Normativas de Pasantías",
-    tipo: "application/pdf",
-    peso: "500KB",
-    estado: "publicado",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-// 2. Funciones CRUD (Simulando asincronía con async/await)
-
-// Obtener todos los documentos
-const getAll = async () => {
-  return documentos;
 };
 
-// Obtener un documento por ID
+const getAll = async (page = 1, pageSize = 10) => {
+  const skip = (page - 1) * pageSize;
+  const [documentos, total] = await Promise.all([
+    prisma.documento.findMany({
+      include: includeRelations,
+      skip,
+      take: pageSize,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.documento.count(),
+  ]);
+
+  return {
+    documentos,
+    total,
+    page,
+    pageSize,
+  };
+};
+
 const getById = async (id) => {
-  const documento = documentos.find((doc) => doc.id === id);
-  return documento || null;
+  return prisma.documento.findUnique({
+    where: { id },
+    include: includeRelations,
+  });
 };
 
-// Crear un nuevo documento
 const create = async (data) => {
-  const nuevoDocumento = {
-    id: crypto.randomUUID(),
-    ...data,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  documentos.push(nuevoDocumento);
-  return nuevoDocumento;
+  return prisma.documento.create({
+    data,
+    include: includeRelations,
+  });
 };
 
-// Actualizar un documento existente
 const update = async (id, data) => {
-  const index = documentos.findIndex((doc) => doc.id === id);
+  const documentoExistente = await prisma.documento.findUnique({ where: { id } });
 
-  if (index === -1) {
-    return null; // No encontrado
+  if (!documentoExistente) {
+    return null;
   }
 
-  // Actualizamos solo los campos enviados y refrescamos updatedAt
-  documentos[index] = {
-    ...documentos[index],
-    ...data,
-    updatedAt: new Date().toISOString(),
-  };
-
-  return documentos[index];
+  return prisma.documento.update({
+    where: { id },
+    data,
+    include: includeRelations,
+  });
 };
 
-// Eliminar un documento (físico)
 const remove = async (id) => {
-  const index = documentos.findIndex((doc) => doc.id === id);
+  const documentoExistente = await prisma.documento.findUnique({ where: { id } });
 
-  if (index === -1) {
-    return false; // No encontrado
+  if (!documentoExistente) {
+    return false;
   }
 
-  // Elimina 1 elemento en la posición index
-  documentos.splice(index, 1);
+  await prisma.documento.delete({ where: { id } });
   return true;
 };
 

@@ -1,143 +1,166 @@
 # 📂 API REST - Módulo de Gestión Documental (MiUNE 2.0)
 
-![Node.js](https://img.shields.io/badge/Node.js-v20-green) ![Express](https://img.shields.io/badge/Express-v4.18-blue) ![License](https://img.shields.io/badge/License-MIT-yellow)
+Backend con Node.js + Express + Prisma ORM para gestión documental con persistencia real en PostgreSQL.
 
-## 📖 Descripción
+## 🛠️ Stack
 
-API REST backend desarrollada con **Node.js** y **Express** para gestionar el ciclo de vida de los documentos (creación, lectura, actualización y eliminación) dentro del sistema de la Coordinación de Sistemas de MiUNE 2.0.
+- Node.js + Express
+- Prisma ORM
+- PostgreSQL
+- Joi (validación)
 
-Este microservicio permite centralizar manuales, reportes y normativas, asegurando la integridad de los datos mediante validaciones robustas antes de su almacenamiento.
+## 🚀 Instalación
 
-## 🛠️ Tecnologías Utilizadas
+1. Clonar el repositorio
+2. Instalar dependencias:
 
-- **Runtime:** Node.js
-- **Framework:** Express.js
-- **Validación:** Joi
-- **Seguridad/Utilidades:** Cors, Dotenv
-- **Entorno de Desarrollo:** Nodemon
+```bash
+npm install
+```
 
-## 🚀 Instalación y Configuración
+3. Copiar variables de entorno:
 
-### Prerrequisitos
+```bash
+cp .env.example .env
+```
 
-- Node.js (v18 o superior)
-- npm
+4. Configurar `DATABASE_URL` en `.env`
+5. Generar Prisma Client:
 
-### Pasos
+```bash
+npm run prisma:generate
+```
 
-1.  **Clonar el repositorio**
+6. Ejecutar migraciones:
 
-    ```bash
-    git clone https://github.com/andr31a/miune-docs-api
-    cd miune-docs-api
-    ```
+```bash
+npm run prisma:migrate
+```
 
-2.  **Instalar dependencias**
+7. Poblar datos de prueba:
 
-    ```bash
-    npm install
-    ```
+```bash
+npm run prisma:seed
+```
 
-3.  **Configurar variables de entorno**
-    Crea un archivo `.env` en la raíz del proyecto basándote en el ejemplo:
+8. Iniciar servidor:
 
-    ```bash
-    cp .env.example .env
-    ```
+```bash
+npm run dev
+```
 
-    Asegúrate de que tu `.env` tenga:
+Servidor local: `http://localhost:3000`
 
-    ```env
-    PORT=3000
-    NODE_ENV=development
-    ```
+## 🌐 Endpoints
 
-4.  **Iniciar el servidor**
-    ```bash
-    npm run dev
-    ```
-    El servidor correrá en: `http://localhost:3000`
+### Documentos (`/api/documentos`)
 
-## 🔗 API Endpoints
+- `GET /` lista documentos (soporta `?page=1&pageSize=10`)
+- `GET /:id` obtiene documento por ID
+- `POST /` crea documento
+- `PUT /:id` actualiza documento
+- `DELETE /:id` elimina documento
 
-La URL base es: `/api/documentos`
+Ejemplo body `POST /api/documentos`:
 
-### 1. Obtener todos los documentos
+```json
+{
+  "titulo": "Reglamento Académico 2026",
+  "tipo": "application/pdf",
+  "peso": "1.5MB",
+  "estado": "borrador",
+  "resumen": "Versión preliminar para revisión",
+  "urlArchivo": "https://docs.miune.edu/reglamento-2026.pdf",
+  "usuarioId": 1,
+  "categoriaId": 2
+}
+```
 
-- **Método:** `GET`
-- **URL:** `/`
-- **Respuesta Exitosa (200 OK):**
-  ```json
-  {
-    "success": true,
-    "count": 3,
-    "data": [
-      {
-        "id": "uuid-generado...",
-        "titulo": "Manual de Usuario",
-        "tipo": "application/pdf",
-        "peso": "2.5MB",
-        "estado": "publicado"
-      }
-    ]
-  }
-  ```
+### Categorías (`/api/categorias`)
 
-### 2. Obtener un documento por ID
+- `GET /` lista categorías
+- `GET /:id` obtiene categoría por ID
+- `POST /` crea categoría
+- `PUT /:id` actualiza categoría
+- `DELETE /:id` elimina categoría (si no tiene documentos asociados)
 
-- **Método:** `GET`
-- **URL:** `/:id`
-- **Respuesta Exitosa (200 OK):** Objeto del documento.
-- **Error (404 Not Found):** Si el ID no existe.
+Ejemplo body `POST /api/categorias`:
 
-### 3. Crear un nuevo documento
+```json
+{
+  "nombre": "Normativas",
+  "descripcion": "Reglamentos y políticas institucionales",
+  "activa": true
+}
+```
 
-- **Método:** `POST`
-- **URL:** `/`
-- **Body (JSON):**
-  ```json
-  {
-    "titulo": "Nuevo Reglamento 2026",
-    "tipo": "application/pdf",
-    "peso": "1.5MB",
-    "estado": "borrador"
-  }
-  ```
-- **Validaciones:**
-  - `titulo`: Requerido, min 3 chars.
-  - `tipo`: Solo 'application/pdf', 'application/docx', 'application/xlsx'.
-  - `estado`: Solo 'borrador' o 'publicado'.
+## 🧠 Esquema de Base de Datos
 
-### 4. Actualizar un documento
+```mermaid
+erDiagram
+    Usuario ||--o{ Documento : crea
+    Categoria ||--o{ Documento : clasifica
 
-- **Método:** `PUT`
-- **URL:** `/:id`
-- **Body (JSON):** (Campos opcionales)
-  ```json
-  {
-    "titulo": "Nuevo Reglamento Corregido",
-    "estado": "publicado"
-  }
-  ```
+    Usuario {
+      int id PK
+      string nombre
+      string email UK
+      string rol
+      boolean activo
+      datetime createdAt
+      datetime updatedAt
+    }
 
-### 5. Eliminar un documento
+    Categoria {
+      int id PK
+      string nombre UK
+      string descripcion
+      boolean activa
+      datetime createdAt
+      datetime updatedAt
+    }
 
-- **Método:** `DELETE`
-- **URL:** `/:id`
-- **Respuesta Exitosa (200 OK):** `{ "success": true, "data": {} }`
+    Documento {
+      int id PK
+      string titulo
+      string tipo
+      string peso
+      string estado
+      string resumen
+      string urlArchivo
+      int usuarioId FK
+      int categoriaId FK
+      datetime createdAt
+      datetime updatedAt
+    }
+```
 
-## 📂 Estructura del Proyecto
+## 📁 Estructura Relevante
 
 ```text
-miune-docs-api/
-├── src/
-│   ├── controllers/   # Lógica de los endpoints
-│   ├── middleware/    # Validaciones y manejo de errores
-│   ├── models/        # Modelo de datos (Array en memoria)
-│   ├── routes/        # Definición de rutas
-│   ├── utils/         # Clases de utilidad (AppError)
-│   └── app.js         # Configuración de Express
-├── .env               # Variables de entorno (No subir a Git)
-├── .env.example       # Plantilla de variables
-└── package.json
+prisma/
+├── schema.prisma
+├── migrations/
+└── seed.js
+
+src/
+├── controllers/
+├── lib/
+├── middleware/
+├── models/
+└── routes/
 ```
+
+## ✅ Estado del entregable Semana 3
+
+- 3 tablas relacionadas: `Usuario`, `Categoria`, `Documento`
+- Migración inicial en `prisma/migrations/`
+- CRUD completo de `Documento` y `Categoria`
+- Seed con datos de prueba realistas y relaciones
+- `.env.example` con `DATABASE_URL`
+
+## 🧪 Colección Postman
+
+Se incluye una colección para validar el flujo CRUD end-to-end:
+
+- `postman/miune-docs-api-semana3.postman_collection.json`

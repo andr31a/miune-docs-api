@@ -1,17 +1,24 @@
 const documentoModel = require("../models/documentoModel");
+const AppError = require("../utils/AppError");
 
 // @desc    Obtener todos los documentos
 // @route   GET /api/documentos
 exports.getAll = async (req, res, next) => {
   try {
-    const documentos = await documentoModel.getAll();
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const pageSize = Number.parseInt(req.query.pageSize, 10) || 10;
+    const { documentos, total } = await documentoModel.getAll(page, pageSize);
+
     res.status(200).json({
       success: true,
       count: documentos.length,
+      total,
+      page,
+      pageSize,
       data: documentos,
     });
   } catch (error) {
-    next(error); // Pasamos el error al middleware global (que crearemos luego)
+    next(error);
   }
 };
 
@@ -19,12 +26,18 @@ exports.getAll = async (req, res, next) => {
 // @route   GET /api/documentos/:id
 exports.getById = async (req, res, next) => {
   try {
-    const documento = await documentoModel.getById(req.params.id);
+    const documentoId = Number.parseInt(req.params.id, 10);
+
+    if (Number.isNaN(documentoId)) {
+      return next(new AppError("El ID del documento debe ser numérico", 400));
+    }
+
+    const documento = await documentoModel.getById(documentoId);
 
     if (!documento) {
       return res.status(404).json({
         success: false,
-        message: `Documento no encontrado con el id ${req.params.id}`,
+        message: `Documento no encontrado con el id ${documentoId}`,
       });
     }
 
@@ -41,7 +54,6 @@ exports.getById = async (req, res, next) => {
 // @route   POST /api/documentos
 exports.create = async (req, res, next) => {
   try {
-    // Por ahora confiamos en el body, en el próximo paso validaremos con Joi
     const nuevoDocumento = await documentoModel.create(req.body);
 
     res.status(201).json({
@@ -57,15 +69,18 @@ exports.create = async (req, res, next) => {
 // @route   PUT /api/documentos/:id
 exports.update = async (req, res, next) => {
   try {
-    const documentoActualizado = await documentoModel.update(
-      req.params.id,
-      req.body,
-    );
+    const documentoId = Number.parseInt(req.params.id, 10);
+
+    if (Number.isNaN(documentoId)) {
+      return next(new AppError("El ID del documento debe ser numérico", 400));
+    }
+
+    const documentoActualizado = await documentoModel.update(documentoId, req.body);
 
     if (!documentoActualizado) {
       return res.status(404).json({
         success: false,
-        message: `Documento no encontrado con el id ${req.params.id}`,
+        message: `Documento no encontrado con el id ${documentoId}`,
       });
     }
 
@@ -82,18 +97,24 @@ exports.update = async (req, res, next) => {
 // @route   DELETE /api/documentos/:id
 exports.deleteResource = async (req, res, next) => {
   try {
-    const eliminado = await documentoModel.remove(req.params.id);
+    const documentoId = Number.parseInt(req.params.id, 10);
+
+    if (Number.isNaN(documentoId)) {
+      return next(new AppError("El ID del documento debe ser numérico", 400));
+    }
+
+    const eliminado = await documentoModel.remove(documentoId);
 
     if (!eliminado) {
       return res.status(404).json({
         success: false,
-        message: `Documento no encontrado con el id ${req.params.id}`,
+        message: `Documento no encontrado con el id ${documentoId}`,
       });
     }
 
     res.status(200).json({
       success: true,
-      data: {}, // Al eliminar, es convención devolver un objeto vacío o un mensaje
+      data: {},
     });
   } catch (error) {
     next(error);

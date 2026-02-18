@@ -1,16 +1,19 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const documentoRoutes = require("./routes/documentoRoutes");
-const errorHandler = require("./middleware/errorHandler");
 
 dotenv.config();
+
+const documentoRoutes = require("./routes/documentoRoutes");
+const categoriaRoutes = require("./routes/categoriaRoutes");
+const errorHandler = require("./middleware/errorHandler");
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
 app.use("/api/documentos", documentoRoutes);
+app.use("/api/categorias", categoriaRoutes);
 
 app.get("/", (req, res) => {
   res

@@ -15,8 +15,28 @@ const documentoSchema = Joi.object({
       "any.only": "El tipo debe ser pdf, docx o xlsx",
       "any.required": "El tipo de archivo es obligatorio",
     }),
-  peso: Joi.string().required(),
-  estado: Joi.string().valid("borrador", "publicado").required(),
+  peso: Joi.string().required().messages({
+    "any.required": "El peso del archivo es obligatorio",
+  }),
+  estado: Joi.string().valid("borrador", "publicado", "archivado").required(),
+  resumen: Joi.string().max(500).optional().allow(""),
+  urlArchivo: Joi.string().uri().optional().allow(""),
+  usuarioId: Joi.number().integer().positive().required().messages({
+    "any.required": "El usuarioId es obligatorio",
+  }),
+  categoriaId: Joi.number().integer().positive().required().messages({
+    "any.required": "El categoriaId es obligatorio",
+  }),
+});
+
+const categoriaSchema = Joi.object({
+  nombre: Joi.string().min(3).max(80).required().messages({
+    "string.empty": "El nombre no puede estar vacío",
+    "string.min": "El nombre debe tener al menos 3 caracteres",
+    "any.required": "El nombre es obligatorio",
+  }),
+  descripcion: Joi.string().max(255).optional().allow(""),
+  activa: Joi.boolean().optional(),
 });
 
 // Middleware para validar creación (POST)
@@ -37,7 +57,16 @@ const validateCreate = (req, res, next) => {
 const validateUpdate = (req, res, next) => {
   // Al actualizar, todos los campos son opcionales, pero si vienen deben cumplir las reglas
   const updateSchema = documentoSchema.fork(
-    ["titulo", "tipo", "peso", "estado"],
+    [
+      "titulo",
+      "tipo",
+      "peso",
+      "estado",
+      "resumen",
+      "urlArchivo",
+      "usuarioId",
+      "categoriaId",
+    ],
     (schema) => schema.optional(),
   );
 
@@ -52,7 +81,39 @@ const validateUpdate = (req, res, next) => {
   next();
 };
 
+const validateCategoriaCreate = (req, res, next) => {
+  const { error } = categoriaSchema.validate(req.body, { abortEarly: false });
+
+  if (error) {
+    const errorMessage = error.details
+      .map((detail) => detail.message)
+      .join(", ");
+    return next(new AppError(errorMessage, 400));
+  }
+
+  next();
+};
+
+const validateCategoriaUpdate = (req, res, next) => {
+  const updateSchema = categoriaSchema.fork(["nombre", "descripcion", "activa"], (schema) =>
+    schema.optional(),
+  );
+
+  const { error } = updateSchema.validate(req.body, { abortEarly: false });
+
+  if (error) {
+    const errorMessage = error.details
+      .map((detail) => detail.message)
+      .join(", ");
+    return next(new AppError(errorMessage, 400));
+  }
+
+  next();
+};
+
 module.exports = {
   validateCreate,
   validateUpdate,
+  validateCategoriaCreate,
+  validateCategoriaUpdate,
 };
